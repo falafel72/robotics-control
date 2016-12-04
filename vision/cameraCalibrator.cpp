@@ -44,6 +44,42 @@ int CameraCalibrator::addChessboardPoints(const vector<string> &filelist,
     return successes;
 }
 
+int CameraCalibrator::addChessboardPoints(const vector<Mat *> &frames, Size &boardSize) {
+	//chessboard points
+    vector<Point2f> imageCorners;
+    vector<Point3f> objectCorners;
+
+    // std::cout << "1" << endl;
+
+    //init corners
+    for(int i = 0; i < boardSize.height; i++) {
+		for(int j = 0; j < boardSize.width; j++) {
+		    objectCorners.push_back(Point3f(i,j,0.0f));
+		}
+    }
+
+    // std::cout << "2" << endl;
+
+
+    Mat image; 
+    int successes = 0;
+    //go through each chessboard image
+    for(int i = 0; i < frames.size(); i++) {
+		image = *frames[i];
+		bool found = findChessboardCorners(image,boardSize,imageCorners);
+		//get corners w/ subpixel accuracy
+		cornerSubPix(image, imageCorners, Size(5,5), Size(-1,-1), 
+			    TermCriteria(TermCriteria::MAX_ITER + TermCriteria::EPS,
+					30, //max iterations
+					0.1)); //accuracy
+		if(imageCorners.size() == boardSize.area()) {
+		    addPoints(imageCorners,objectCorners);
+		    successes++;
+		}
+    }
+    return successes;
+}
+
 void CameraCalibrator::addPoints(const vector<Point2f> &imageCorners, 
 		const vector<Point3f> &objectCorners) {
     imagePoints.push_back(imageCorners);

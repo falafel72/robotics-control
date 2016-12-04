@@ -19,6 +19,9 @@ class CameraCalibrator{
 
 	int addChessboardPoints(const vector<string> &filelist,  //extracts corner points from chessboard images
 			    Size &boardSize);
+
+	int addChessboardPoints(const vector<Mat *> &frames, Size &boardSize); //uses image pointers instead of file names
+
 	void addPoints(const vector<Point2f> &imageCorners, //adds scene points and corresponding image points
 			const vector<Point3f> &objectCorners);
 

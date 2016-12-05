@@ -68,9 +68,9 @@ int main(int args, char** argv) {
 	}
 */
 	//while(waitKey(20) != 'q') {
-		Mat in1,in2;
-		in1 = imread("img/1.jpg",0);
-		in2 = imread("img/2.jpg",0);
+		// Mat in1,in2;
+		// in1 = imread("img/1.jpg",0);
+		// in2 = imread("img/2.jpg",0);
 
 		//CameraCalibrator c; 
 		//Mat cameraMat = imread("./params/mat1.bmp",0);
@@ -89,8 +89,10 @@ int main(int args, char** argv) {
 		
 
 		Mat frameL,frameR;
-		undistort(in1,frameL, c.getCameraMatrix(), c.getDistCoeffs());
-		undistort(in2,frameR, c.getCameraMatrix(), c.getDistCoeffs());
+		frameL = imread("img/1.jpg",0);
+		frameR = imread("img/2.jpg",0);
+		// undistort(in1,frameL, c.getCameraMatrix(), c.getDistCoeffs());
+		// undistort(in2,frameR, c.getCameraMatrix(), c.getDistCoeffs());
 		
 		// resize(frameL,frameL,Size(512,384));
 		// resize(frameR,frameR,Size(512,384));

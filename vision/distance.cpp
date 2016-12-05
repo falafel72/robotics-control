@@ -72,12 +72,12 @@ int main(int args, char** argv) {
 		in1 = imread("img/1.jpg",0);
 		in2 = imread("img/2.jpg",0);
 
-		CameraCalibrator c; 
+		//CameraCalibrator c; 
 		//Mat cameraMat = imread("./params/mat1.bmp",0);
 		//cout << cameraMat << endl;
 		//Mat distCoeffs = imread("./params/dist1.bmp",0);
 		Size imageSize = in1.size();
-		calibrateCamera(c,imageSize);
+		//calibrateCamera(c,imageSize);
 		// if(!cameraMat.data) {
 		// 	calibrateCamera(c, imageSize);
 		// }

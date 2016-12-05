@@ -76,7 +76,7 @@ int main(int args, char** argv) {
 		//Mat cameraMat = imread("./params/mat1.bmp",0);
 		//cout << cameraMat << endl;
 		//Mat distCoeffs = imread("./params/dist1.bmp",0);
-		Size imageSize = in1.size();
+		//Size imageSize = in1.size();
 		//calibrateCamera(c,imageSize);
 		// if(!cameraMat.data) {
 		// 	calibrateCamera(c, imageSize);

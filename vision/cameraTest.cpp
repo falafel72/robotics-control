@@ -16,21 +16,25 @@ int main(int argc, char* argv[]) { //generate and save a mat for camera calibrat
     // string file = argv[1];
     // string DIR = "calibrate/" + file + ".jpg";
 
-    Mat image = imread("calibrate/1.jpg");
+    Mat image = imread("calibrate/1.png");
     Size imageSize = image.size();
 
     // vector<Point2f> corners;
     // bool found = findChessboardCorners(image,Size(9,6),corners);
     // drawChessboardCorners(image, Size(9,6),corners,found);
-
+    
     imshow("original", image);
-
+    
+    cout << "1" << endl;
     DIR *dir;
     struct dirent *ent;
     if((dir = opendir("./calibrate")) != NULL) {
     	while((ent = readdir(dir)) != NULL) {
-    	    if(strncmp(ent->d_name,".",2) != 0 && strncmp(ent->d_name,"..",2) != 0 && strncmp(ent->d_name,".DS_Store",9) != 0){
-    		  filenames.push_back(ent->d_name);
+            const char* dirname = ent->d_name;
+    	    if(strlen(dirname) > 4){
+                char fext[4];
+                strncpy(fext,dirname+strlen(dirname)-4,4);
+                if(strncmp(fext,".png",4) == 0) filenames.push_back(ent->d_name);
     	    }
     	}
     	closedir(dir);
@@ -39,13 +43,18 @@ int main(int argc, char* argv[]) { //generate and save a mat for camera calibrat
 	   cerr << "Unable to open directory" << endl;
 	return -1;
     }
+    
+    cout << "2" << endl;
     Size chessSize = Size(9,6);
-    c.addChessboardPoints(filenames, chessSize);
+    int successes = c.addChessboardPoints(filenames, chessSize);
+    cout << "3" << endl;
+    cout << "Successes: " << successes << endl;
     double reprojerr = c.calibrate(imageSize);
+    cout << "4" << endl;
+    Mat result = c.remap(image);
+    //Mat result;
+    //undistort(image,result,c.getCameraMatrix(),c.getDistCoeffs());
 
-    //Mat result = c.remap(image);
-    Mat result;
-    undistort(image,result,c.getCameraMatrix(),c.getDistCoeffs());
     cout << c.getCameraMatrix() << endl;
     imshow("calibrated", result);
     // imwrite("params/mat1.bmp", c.getCameraMatrix());

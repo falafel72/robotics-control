@@ -19,40 +19,74 @@
 using namespace cv;
 using namespace std;
 
-#define NUM_DISPARITY 16*5
+// constants for StereoSGBM 
+#define NUM_DISPARITY 16*20
 #define PRE_FILTER_CAP 0
-#define SAD_WINDOW_SIZE 5
-#define CONST_P1 128
-#define CONST_P2 256
+#define SAD_WINDOW_SIZE 3
+#define CONST_P1 8*1*SAD_WINDOW_SIZE*SAD_WINDOW_SIZE
+#define CONST_P2 32*1*SAD_WINDOW_SIZE*SAD_WINDOW_SIZE
 #define MIN_DISPARITY 5
-#define UNIQUENESS_RATIO 1
+#define UNIQUENESS_RATIO 0
 #define SPECKLE_WIN_SIZE 0
 #define SPECKLE_RANGE 2
-#define DISP_12_MAX_DIFF 20
-#define FULL_DP true
+#define DISP_12_MAX_DIFF 50
+#define FULL_DP false
 
-//#define DISPLACEMENT 
+#define DISPLACEMENT 0.2 //displacement in m
+#define SENSOR_WIDTH 5.37
+#define SENSOR_HEIGHT 4.04
 
+#define POINT_X 361
+#define POINT_Y 176
 vector<string> getCalibFiles() {
 	vector<string> filenames;
 	DIR *dir;
 	struct dirent *ent; 
 	if((dir = opendir("./calibrate")) != NULL) {
 		while((ent = readdir(dir)) != NULL) {
-			if(strncmp(ent->d_name,".",2) != 0 && strncmp(ent->d_name,"..",2) != 0 && strncmp(ent->d_name,".DS_Store",9) != 0) { // get rid of "." and ".." directories
-				filenames.push_back(ent->d_name);
-			}
+            const char* dirname = ent->d_name;
+			if(strlen(dirname) > 4){
+                char fext[4];
+                strncpy(fext,dirname+strlen(dirname)-4,4);
+                if(strncmp(fext,".png",4) == 0) filenames.push_back(ent->d_name);
+    	    }
 		}
 		closedir(dir);
 	}
 	return filenames;
 }
 
+void getFrames(char* path, vector<Mat *> &frames) {
+	VideoCapture cap;
+	cap.open(path);
+	if(!cap.isOpened) {
+		cout << "Cannot open file" << endl;
+		return;
+	}
+	int totalFrames = cap.get(CV_CAP_PROP_FRAME_COUNT);
+	vector<Mat *> frames;
+	Mat frame;
+	Mat *ptr;
+	while(totalFrames > 0) {
+		cap >> frame;
+		ptr = &frame;
+		frames.push_back(ptr);
+	}
+	return;
+}
+
 void calibrateCamera(CameraCalibrator &c, Size &imageSize) {
 	vector<string> filenames = getCalibFiles();	
-	//cout << filenames << endl;	
 	Size boardSize = Size(9,6);
 	c.addChessboardPoints(filenames,boardSize); 
+	double reprojerr = c.calibrate(imageSize);
+}
+
+void calibrateCameraVideo(CameraCalibrator &c, Size &imageSize) {
+	vector<Mat *> video;
+	getFrames("./calibrate/trial1/calibration.avi", video);
+	Size boardSize = Size(9,6);
+	c.addChessboardPoints(video,boardSize); 
 	double reprojerr = c.calibrate(imageSize);
 }
 
@@ -68,39 +102,41 @@ int main(int args, char** argv) {
 	}
 */
 	//while(waitKey(20) != 'q') {
-		// Mat in1,in2;
-		// in1 = imread("img/1.jpg",0);
-		// in2 = imread("img/2.jpg",0);
+		Mat in1,in2;
+		in1 = imread("img/left.jpg");
+		in2 = imread("img/right.jpg");
 
-		//CameraCalibrator c; 
-		//Mat cameraMat = imread("./params/mat1.bmp",0);
+		CameraCalibrator c; 
+		Mat cameraMat = imread("./params/mat1.bmp",0);
 		//cout << cameraMat << endl;
-		//Mat distCoeffs = imread("./params/dist1.bmp",0);
-		//Size imageSize = in1.size();
+		Mat distCoeffs = imread("./params/dist1.bmp",0);
+		Size imageSize = in1.size();
 		//calibrateCamera(c,imageSize);
-		// if(!cameraMat.data) {
-		// 	calibrateCamera(c, imageSize);
-		// }
-		// else {
-		// 	c.setCameraMatrix(cameraMat);
-		// 	c.setDistCoeffs(distCoeffs);
-		// }
+		if(!cameraMat.data) {
+		    calibrateCameraVideo(c, imageSize);
+		}
+		else {
+		   c.setCameraMatrix(cameraMat);
+	       c.setDistCoeffs(distCoeffs);
+		}
 
 		
 
 		Mat frameL,frameR;
-		frameL = imread("img/1.jpg",0);
-		frameR = imread("img/2.jpg",0);
-		// undistort(in1,frameL, c.getCameraMatrix(), c.getDistCoeffs());
-		// undistort(in2,frameR, c.getCameraMatrix(), c.getDistCoeffs());
-		
-		// resize(frameL,frameL,Size(512,384));
-		// resize(frameR,frameR,Size(512,384));
+	//	frameL = imread("img/left.jpg",0);
+	//	frameR = imread("img/right.jpg",0);
+		frameL = c.remap(in1);
+		frameR = c.remap(in2);
+		//undistort(in1,frameL, c.getCameraMatrix(), c.getDistCoeffs());
+		//undistort(in2,frameR, c.getCameraMatrix(), c.getDistCoeffs());
+	     Mat frameL2,frameR2;
+		resize(frameL,frameL2,Size(imageSize.width/2,imageSize.height/2));
+		resize(frameR,frameR2,Size(imageSize.width/2,imageSize.height/2));
 		/*camera1 >> frameL;
 		camera2 >> frameR;*/
 
-		imshow("Cam 1", frameL);
-		imshow("Cam 2", frameR);
+       	imshow("Cam 1", frameL2);
+		imshow("Cam 2", frameR2);
 
 		//calculate disparity map between feeds
 		Mat disparity16S = Mat(frameL.rows,frameL.cols,CV_16S);
@@ -153,30 +189,43 @@ int main(int args, char** argv) {
 
 		double min, max;
 		minMaxLoc(disparity16S,&min,&max);
-		printf("Min disp: %f Max value: %f \n", min, max);
+		printf("Min disp: %f Max value: %f \n", min/16, max/16);
 
 		//convert signed to unsigned to be displayed
 		disparity16S.convertTo(disparity8U,CV_8UC1,255/(max-min));
 
-		double disparity = disparity8U.at<uchar>(disparity8U.rows/2,disparity8U.cols/2);
-		circle(disparity8U,Point(disparity8U.cols/2,disparity8U.rows/2),10,Scalar(255,255,255));
+		//235 1659 344 1260 
+		double disparity = disparity16S.at<uchar>(POINT_Y,POINT_X)/16;
+		circle(disparity8U,Point(POINT_X,POINT_Y),10,Scalar(255,255,255));
 		//print distance at the middle of the frame
-		printf("Disparity: %f",disparity);
+		printf("Disparity: %f\n",disparity);
 
 		/*get camera focal length
 			- from camera matrix after calibrating
 			- also need dimensions of image sensor & aperture width
-		calibrationMatrixValues(c.getCameraMatrix(),imageSize,)
-
+		*/
+		double fovx, fovy, focalLength, aspectRatio;
+		Point2d principal;
+		calibrationMatrixValues(c.getCameraMatrix(),imageSize,SENSOR_WIDTH,SENSOR_HEIGHT,fovx,fovy,focalLength,principal,aspectRatio);
+        printf("Focal Length: %f\n",focalLength);
+		/*
 		need to know displacement between different angles
 
 		plug into formula
 			Z = Bf/d
-			Depth = Base displacement * focal length/disparity*/
+			Depth (m) = Base displacement (m)* focal length (px)/disparity(px)*/
 
 
+		//resize(disparity8U,disparity8U,Size(512,384));
+		double focalPix = (focalLength/SENSOR_WIDTH) * imageSize.width;
+		double depth = DISPLACEMENT * focalPix/disparity;
 
-		imshow("disparity", disparity8U);
+		printf("Focal length in pixels: %f\n",focalPix);
+		printf("Distance: %f\n",depth);
+	    
+        Mat dispResize;
+        resize(disparity8U,dispResize,Size(imageSize.width/2,imageSize.height/2));
+		imshow("disparity", dispResize);
 
 		waitKey();
 

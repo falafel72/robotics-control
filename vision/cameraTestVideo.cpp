@@ -19,8 +19,8 @@ int main(int argc, char* argv[]) { //generate and save a mat for camera calibrat
 
     cv::VideoCapture cap;
     cout << "hi" << endl;
-    cap.set(CV_CAP_PROP_FOURCC,CV_FOURCC('I','P','D','V'));
-    cap.open("./calibrate/calibrate.avi");
+    //cap.set(CV_CAP_PROP_FOURCC,CV_FOURCC('I','P','D','V'));
+    cap.open("calibration.avi");
     if (!cap.isOpened()) {
         cout << "Cannot open file" << endl;
         return -1;
@@ -34,28 +34,28 @@ int main(int argc, char* argv[]) { //generate and save a mat for camera calibrat
     Mat image;
 
     cout << totalFrames << endl;
-    // cap >> image;
-    // Size imageSize = image.size();
-    // totalFrames--;
-    // while(waitKey(30) != 27 && totalFrames > 0) {
-    //     cap >> frame;
-    //     ptr = &frame;
-    //     frameList.push_back(ptr);
-    //     imshow("video",frame);
-    //     totalFrames--;
-    // }
+    cap >> image;
+    Size imageSize = image.size();
+    totalFrames--;
+    while(waitKey(30) != 27 && totalFrames > 0) {
+        cap >> frame;
+        ptr = &frame;
+        frameList.push_back(ptr);
+        imshow("video",frame);
+        totalFrames--;
+    }
 
-    //Size chessSize = Size(9,6);
+    Size chessSize = Size(9,6);
 
-    // c.addChessboardPoints(frameList, chessSize);
-    // double reprojerr = c.calibrate(imageSize);
+    c.addChessboardPoints(frameList, chessSize);
+    double reprojerr = c.calibrate(imageSize);
 
-    // //Mat result = c.remap(image);
-    // Mat result;
-    // undistort(image,result,c.getCameraMatrix(),c.getDistCoeffs());
-    // cout << c.getCameraMatrix() << endl;
-    // imshow("calibrated", result);
-    // imwrite("params/mat1.bmp", c.getCameraMatrix());
-    // imwrite("params/dist1.bmp", c.getDistCoeffs());
+    //Mat result = c.remap(image);
+    Mat result;
+    undistort(image,result,c.getCameraMatrix(),c.getDistCoeffs());
+    cout << c.getCameraMatrix() << endl;
+    imshow("calibrated", result);
+    imwrite("params/mat1.bmp", c.getCameraMatrix());
+    imwrite("params/dist1.bmp", c.getDistCoeffs());
     return 0;
 }

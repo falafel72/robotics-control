@@ -2,8 +2,8 @@
 
 //using namespace CameraCalibrator;
 // #include <stdio.h>
-// #include <iostream>
-// using namespace std;
+#include <iostream>
+using namespace std;
 
 CameraCalibrator::CameraCalibrator(): flag(0) , mustInitUndistort(true) {};
 
@@ -13,17 +13,12 @@ int CameraCalibrator::addChessboardPoints(const vector<string> &filelist,
     vector<Point2f> imageCorners;
     vector<Point3f> objectCorners;
 
-    // std::cout << "1" << endl;
-
     //init corners
     for(int i = 0; i < boardSize.height; i++) {
 		for(int j = 0; j < boardSize.width; j++) {
 		    objectCorners.push_back(Point3f(i,j,0.0f));
 		}
     }
-
-    // std::cout << "2" << endl;
-
 
     Mat image; 
     int successes = 0;

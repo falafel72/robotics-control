@@ -20,29 +20,38 @@ using namespace cv;
 using namespace std;
 
 // constants for StereoSGBM 
-#define NUM_DISPARITY 16*20
-#define PRE_FILTER_CAP 0
-#define SAD_WINDOW_SIZE 3
+#define NUM_DISPARITY 16*25
+#define PRE_FILTER_SIZE 5
+#define PRE_FILTER_CAP 1
+#define SAD_WINDOW_SIZE 21
 #define CONST_P1 8*1*SAD_WINDOW_SIZE*SAD_WINDOW_SIZE
 #define CONST_P2 32*1*SAD_WINDOW_SIZE*SAD_WINDOW_SIZE
 #define MIN_DISPARITY 5
 #define UNIQUENESS_RATIO 0
-#define SPECKLE_WIN_SIZE 0
-#define SPECKLE_RANGE 2
-#define DISP_12_MAX_DIFF 50
+#define SPECKLE_WIN_SIZE 1
+#define SPECKLE_RANGE 24
+#define DISP_12_MAX_DIFF 96
 #define FULL_DP false
+#define TEXTURE_THRESH 10
 
 #define DISPLACEMENT 0.2 //displacement in m
 #define SENSOR_WIDTH 5.37
 #define SENSOR_HEIGHT 4.04
 
-#define POINT_X 361
-#define POINT_Y 176
+#define POINT_X 837
+#define POINT_Y 478
+
+#define POINT_X2 1132
+#define POINT_Y2 458
+
+#define POINT_X3 1257
+#define POINT_Y3 598
+
 vector<string> getCalibFiles() {
 	vector<string> filenames;
 	DIR *dir;
 	struct dirent *ent; 
-	if((dir = opendir("./calibrate")) != NULL) {
+	if((dir = opendir("./calibrate/trial3")) != NULL) {
 		while((ent = readdir(dir)) != NULL) {
             const char* dirname = ent->d_name;
 			if(strlen(dirname) > 4){
@@ -59,12 +68,12 @@ vector<string> getCalibFiles() {
 void getFrames(char* path, vector<Mat *> &frames) {
 	VideoCapture cap;
 	cap.open(path);
-	if(!cap.isOpened) {
+	if(!cap.isOpened()) {
 		cout << "Cannot open file" << endl;
 		return;
 	}
 	int totalFrames = cap.get(CV_CAP_PROP_FRAME_COUNT);
-	vector<Mat *> frames;
+	//vector<Mat *> frames;
 	Mat frame;
 	Mat *ptr;
 	while(totalFrames > 0) {
@@ -84,7 +93,7 @@ void calibrateCamera(CameraCalibrator &c, Size &imageSize) {
 
 void calibrateCameraVideo(CameraCalibrator &c, Size &imageSize) {
 	vector<Mat *> video;
-	getFrames("./calibrate/trial1/calibration.avi", video);
+	getFrames("./calibrate/trial3/calibration.avi", video);
 	Size boardSize = Size(9,6);
 	c.addChessboardPoints(video,boardSize); 
 	double reprojerr = c.calibrate(imageSize);
@@ -103,8 +112,8 @@ int main(int args, char** argv) {
 */
 	//while(waitKey(20) != 'q') {
 		Mat in1,in2;
-		in1 = imread("img/left.jpg");
-		in2 = imread("img/right.jpg");
+		in1 = imread("img/trial3/left.jpg",0);
+		in2 = imread("img/trial3/right.jpg",0);
 
 		CameraCalibrator c; 
 		Mat cameraMat = imread("./params/mat1.bmp",0);
@@ -113,7 +122,7 @@ int main(int args, char** argv) {
 		Size imageSize = in1.size();
 		//calibrateCamera(c,imageSize);
 		if(!cameraMat.data) {
-		    calibrateCameraVideo(c, imageSize);
+		    calibrateCamera(c, imageSize);
 		}
 		else {
 		   c.setCameraMatrix(cameraMat);
@@ -161,30 +170,25 @@ int main(int args, char** argv) {
 
 		sbm(frameL,frameR,disparity16S);*/
 
-		/*StereoSGBM ssgbm;
-		ssgbm.minDisparity = 0;
-		ssgbm.numberOfDisparities = 32;
-		ssgbm.SADWindowSize = 3;
-		ssgbm.P1 = 128;
-		ssgbm.P2 = 256;
-		ssgbm.disp12MaxDiff = 20;
-		ssgbm.preFilterCap = 16;
-		ssgbm.uniquenessRatio = 1;
-		ssgbm.speckleWindowSize = 100;
-		ssgbm.fullDP = true;
-
-		ssgbm.compute(frameL,frameR,disparity16S);*/
-
-		Ptr<StereoSGBM> stereo = StereoSGBM::create(MIN_DISPARITY,
-													NUM_DISPARITY,
-													SAD_WINDOW_SIZE,
-													CONST_P1,
-													CONST_P2,
-													DISP_12_MAX_DIFF,
-													PRE_FILTER_CAP,
-													UNIQUENESS_RATIO,
-													SPECKLE_WIN_SIZE,
-													FULL_DP);
+		Ptr<StereoBM> stereo = StereoBM::create(NUM_DISPARITY,SAD_WINDOW_SIZE);
+		stereo->setPreFilterCap(PRE_FILTER_CAP);
+		stereo->setPreFilterSize(PRE_FILTER_SIZE);
+		stereo->setMinDisparity(MIN_DISPARITY);
+		stereo->setTextureThreshold(TEXTURE_THRESH);
+		stereo->setUniquenessRatio(UNIQUENESS_RATIO);
+		stereo->setSpeckleWindowSize(SPECKLE_WIN_SIZE);
+		stereo->setSpeckleRange(SPECKLE_RANGE);
+		stereo->setDisp12MaxDiff(DISP_12_MAX_DIFF);
+		// Ptr<StereoSGBM> stereo = StereoSGBM::create(MIN_DISPARITY,
+		// 											NUM_DISPARITY,
+		// 											SAD_WINDOW_SIZE,
+		// 											CONST_P1,
+		// 											CONST_P2,
+		// 											DISP_12_MAX_DIFF,
+		// 											PRE_FILTER_CAP,
+		// 											UNIQUENESS_RATIO,
+		// 											SPECKLE_WIN_SIZE,
+		// 											FULL_DP);
 		stereo->compute(frameL,frameR,disparity16S);
 
 		double min, max;
@@ -193,10 +197,15 @@ int main(int args, char** argv) {
 
 		//convert signed to unsigned to be displayed
 		disparity16S.convertTo(disparity8U,CV_8UC1,255/(max-min));
+		cvtColor(disparity8U,disparity8U,CV_GRAY2RGB);
 
 		//235 1659 344 1260 
 		double disparity = disparity16S.at<uchar>(POINT_Y,POINT_X)/16;
-		circle(disparity8U,Point(POINT_X,POINT_Y),10,Scalar(255,255,255));
+		double disparity2 = disparity16S.at<uchar>(POINT_Y2,POINT_X2)/16;
+		double disparity3 = disparity16S.at<uchar>(POINT_Y3,POINT_X3)/16;
+		circle(disparity8U,Point(POINT_X,POINT_Y),2,Scalar(0,0,255));
+		circle(disparity8U,Point(POINT_X2,POINT_Y2),2,Scalar(0,0,255));
+		circle(disparity8U,Point(POINT_X3,POINT_Y3),2,Scalar(0,0,255));
 		//print distance at the middle of the frame
 		printf("Disparity: %f\n",disparity);
 
@@ -219,13 +228,37 @@ int main(int args, char** argv) {
 		//resize(disparity8U,disparity8U,Size(512,384));
 		double focalPix = (focalLength/SENSOR_WIDTH) * imageSize.width;
 		double depth = DISPLACEMENT * focalPix/disparity;
+		double depth2 = DISPLACEMENT * focalPix/disparity2;
+		double depth3 = DISPLACEMENT * focalPix/disparity3;
 
 		printf("Focal length in pixels: %f\n",focalPix);
-		printf("Distance: %f\n",depth);
+		printf("Distances: %f %f %f\n",depth,depth2,depth3);
 	    
         Mat dispResize;
         resize(disparity8U,dispResize,Size(imageSize.width/2,imageSize.height/2));
 		imshow("disparity", dispResize);
+
+		// Mat R1,R2,P1,P2,Q;
+		// vector<float> translation;
+		// translation.push_back(0.2);
+		// translation.push_back(0);
+		// translation.push_back(0);
+
+		// stereoRectify(c.getCameraMatrix(),
+		// 				c.getDistCoeffs(),
+		// 				c.getCameraMatrix(),
+		// 				c.getDistCoeffs(),
+		// 				imageSize,
+		// 				Mat::zeros(3,3,CV_32F),
+		// 				 translation,
+		// 				 R1,
+		// 				 R2,
+		// 				 P1,
+		// 				 P2,
+		// 				 Q);
+		// Mat depthMap;
+		// reprojectImageTo3D(disparity16S,depthMap,Q);
+
 
 		waitKey();
 

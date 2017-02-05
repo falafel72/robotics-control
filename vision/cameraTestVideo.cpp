@@ -18,9 +18,9 @@ int main(int argc, char* argv[]) { //generate and save a mat for camera calibrat
     // string DIR = "calibrate/" + file + ".jpg";
 
     cv::VideoCapture cap;
-    cout << "hi" << endl;
+    //cout << "hi" << endl;
     //cap.set(CV_CAP_PROP_FOURCC,CV_FOURCC('I','P','D','V'));
-    cap.open("calibration.avi");
+    cap.open(argv[1]);
     if (!cap.isOpened()) {
         cout << "Cannot open file" << endl;
         return -1;
@@ -29,33 +29,44 @@ int main(int argc, char* argv[]) { //generate and save a mat for camera calibrat
 
     int totalFrames = cap.get(CV_CAP_PROP_FRAME_COUNT);
     vector<Mat *> frameList;
-    Mat frame;
-    Mat *ptr;
     Mat image;
 
-    cout << totalFrames << endl;
-    cap >> image;
-    Size imageSize = image.size();
-    totalFrames--;
+    // cout << totalFrames << endl;
+    // cap >> image;
+    // Size imageSize = image.size();
+    // totalFrames--;
     while(waitKey(30) != 27 && totalFrames > 0) {
-        cap >> frame;
-        ptr = &frame;
-        frameList.push_back(ptr);
-        imshow("video",frame);
+        //if(totalFrames % 5 == 0) {
+            Mat frame;
+            cap >> frame;
+            frameList.push_back(&frame);
+            cout << totalFrames << " " << frame.rows << endl;
+            //imshow("test",frame);
+        //}
+        //else {
+            cap.grab();
+        //}
+        //imshow("video",*ptr);
         totalFrames--;
     }
 
-    Size chessSize = Size(9,6);
+    // for(int i = 0; i < frameList.size(); i++) {
+    //     ptr = frameList[i];
+    //     imshow("video",*ptr);
+    // }
 
-    c.addChessboardPoints(frameList, chessSize);
-    double reprojerr = c.calibrate(imageSize);
+    // Size chessSize = Size(9,6);
 
-    //Mat result = c.remap(image);
-    Mat result;
-    undistort(image,result,c.getCameraMatrix(),c.getDistCoeffs());
-    cout << c.getCameraMatrix() << endl;
-    imshow("calibrated", result);
-    imwrite("params/mat1.bmp", c.getCameraMatrix());
-    imwrite("params/dist1.bmp", c.getDistCoeffs());
+    // c.addChessboardPoints(frameList, chessSize);
+    // double reprojerr = c.calibrate(imageSize);
+
+    // //Mat result = c.remap(image);
+    // Mat result;
+    // undistort(image,result,c.getCameraMatrix(),c.getDistCoeffs());
+    // cout << c.getCameraMatrix() << endl;
+    // imshow("calibrated", result);
+    // imwrite("params/mat1.bmp", c.getCameraMatrix());
+    // waitKey();
+    // imwrite("params/dist1.bmp", c.getDistCoeffs());
     return 0;
 }
